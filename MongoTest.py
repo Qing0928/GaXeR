@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-mongoclient = MongoClient('mongodb://root:mongo0928@localhost:27017')
+mongoclient = MongoClient('mongodb://account:pass@localhost:27017')
 mongodb = mongoclient.gaxer
 mongocollection = mongodb.user
 document = [{"name":"炭烤A5和牛", "age":"22"}]
