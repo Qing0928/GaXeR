@@ -1,4 +1,5 @@
 import re
+from unittest import result
 from sanic import Sanic
 from sanic import json, text
 #from sanic.response import file
@@ -14,12 +15,13 @@ app = Sanic('GaXeR')
 @app.get('/test')
 async def test(request):
     try:
+        #https://gaxer.ddns.net/test
         print('from {}'.format(request.ip))
         return text('Hello World', status=200)
     except Exception as e:
         print(e)
         
-@app.get('upload')
+@app.get('/upload')
 async def update(request):
     try:
         '''print(request.args)
@@ -40,7 +42,7 @@ async def update(request):
         if (account == None) or (sw == None) or (battery == None) or (fire == None) or (temp == None) or (gas == None) or (remaining == None):
             return text('Argument Error', status=200)
         else:
-            result = collection.update_many(
+            collection.update_many(
                 {"account":f"{account}"},
                 {
                     "$push":{
@@ -58,17 +60,39 @@ async def update(request):
                     }
                 }, upsert=True
             )
-            print(result)
             return text('ok', status=200)
     except Exception as e:
         print(e)
         return text('Argument Error', status=200)
 
-@app.get('data')
-async def data(request):
+@app.get('/single')
+async def single(request):
     try:
-        result = list(collection.find({"profile.pass":"test01"}, {"_id":0}))
-        return json(result, status=200)
+        #https://gaxer.ddns.net/single\?tok=123456abcd
+        tok = request.args.get("tok")
+
+        if tok == None:
+            return text('Argument Error', status=200)
+        else:
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            struct_time = time.strptime(now, '%Y-%m-%d %H:%M:%S')
+            tstamp = int(time.mktime(struct_time))
+            result = list(collection.aggregate([
+                {"$match":{
+                    "profile.token":f"{tok}"}
+                },
+                {"$unwind":"$gas1.data"},
+                {"$match":{
+                    "gas1.data.time":{"$lt":tstamp}}
+                },
+                {"$sort":{"gas1.data.time":-1}},
+                {"$project":{
+                    "gas1.data":1, "_id":0}
+                },
+                {"$limit":1}
+            ]))
+            #print(result)
+            return json(result, status=200)
     except Exception as e:
         print(e)
 
