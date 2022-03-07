@@ -1,5 +1,3 @@
-import re
-from unittest import result
 from sanic import Sanic
 from sanic import json, text
 #from sanic.response import file
@@ -65,13 +63,13 @@ async def update(request):
         print(e)
         return text('Argument Error', status=200)
 
-@app.get('/single')
+@app.get('/data')
 async def single(request):
     try:
-        #https://gaxer.ddns.net/single\?tok=123456abcd
+        #https://gaxer.ddns.net/data\?tok=123456abcd&record=1
         tok = request.args.get("tok")
-
-        if tok == None:
+        record = int(request.args.get("record"))
+        if (tok == None) or (record == None):
             return text('Argument Error', status=200)
         else:
             now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -89,7 +87,7 @@ async def single(request):
                 {"$project":{
                     "gas1.data":1, "_id":0}
                 },
-                {"$limit":1}
+                {"$limit":record}
             ]))
             #print(result)
             return json(result, status=200)

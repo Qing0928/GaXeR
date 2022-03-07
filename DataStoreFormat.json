@@ -1,0 +1,30 @@
+{
+    "account":"test01",
+    "profile": 
+    {
+        "pass":"test01", 
+        "token":"123456abcd"
+    }
+    , 
+    "gas1":
+    {
+        "uswitch":"False", 
+        "battery":50, 
+        "data":[
+            {
+                "time":1646405281, 
+                "fire": 1690000,
+                "temp": 30,
+                "gas": 30.0,
+                "remaining": 1945.26
+            }, 
+            {
+                "time":1646409541, 
+                "fire": 168987,
+                "temp": 32,
+                "gas": 28.9,
+                "remaining": 1939.23
+            }
+        ] 
+    }
+}
