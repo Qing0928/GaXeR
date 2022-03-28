@@ -1,3 +1,7 @@
+from math import e
+import re
+from tkinter import E
+from xmlrpc.client import boolean
 from sanic import Sanic
 from sanic import json, text
 #from sanic.response import file
@@ -22,22 +26,18 @@ async def test(request):
 @app.get('/upload')
 async def update(request):
     try:
-        '''print(request.args)
-        print(request.args.get("hum"))
-        print(request.args.getlist("hum"))'''
         #https://gaxer.ddns.net/upload\?acc=test01&sw=True&battery=88&fire=170000&temp=31&gas=29.52&remaining=1950.3
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         struct_time = time.strptime(now, '%Y-%m-%d %H:%M:%S')
         tstamp = int(time.mktime(struct_time))
         account = request.args.get("acc")
-        sw = request.args.get("sw")
         battery = request.args.get("battery")
         fire = request.args.get("fire")
         temp = request.args.get("temp")
         gas = request.args.get("gas")
         remaining = request.args.get("remaining")
         print(request.query_args)
-        if (account == None) or (sw == None) or (battery == None) or (fire == None) or (temp == None) or (gas == None) or (remaining == None):
+        if (account == None) or (battery == None) or (fire == None) or (temp == None) or (gas == None) or (remaining == None):
             return text('Argument Error', status=200)
         else:
             collection.update_many(
@@ -53,7 +53,6 @@ async def update(request):
                             }
                     },
                     "$set":{
-                        "gas1.uswitch":f"{sw}", 
                         "gas1.battery":int(battery)
                     }
                 }, upsert=True
@@ -94,9 +93,44 @@ async def single(request):
     except Exception as e:
         print(e)
 
+@app.get('/swstatus')
+async def swstatus(request):
+    #https://gaxer.ddns.net/swstatus\?tok=123456abcd
+    try:
+        tok = request.args.get("tok")
+        if tok == None:
+            return text('Argument Error', status=200)
+        else:
+            result = list(collection.find({"profile.token":f"{tok}"}, {"gas1.uswitch":1, "_id":0}))
+            sw = dict(result[0])
+        return text(sw['gas1']['uswitch'], status=200)
+    except Exception as e:
+        print(e)
+
+@app.get('/swupdate')
+async def swupdate(request):
+    #https://gaxer.ddns.net/swupdate\?tok=123456abcd&sw=True
+    try:
+        tok = request.args.get("tok")
+        sw = request.args.get("sw")
+        if tok == None:
+            return text('Argument Error', status=200)
+        else:
+            collection.update_one(
+                {"profile.token":f"{tok}"}, 
+                {
+                    "$set":{
+                        "gas1.uswitch":f"{sw}"
+                    }
+                }, upsert=True
+            )
+        return text('ok', status=200)
+    except Exception as e:
+        print(e)
+
 if __name__ == '__main__':
     ssl = {
         "cert":".\gaxer_ddns_net.pem-chain", 
         "key":".\key.pem"
     }
-    app.run(host='0.0.0.0', port='1234', debug=False, access_log=True, ssl=ssl)
+    app.run(host='127.0.0.1', port='9999', debug=False, access_log=True, ssl=ssl)
