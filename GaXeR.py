@@ -1,7 +1,3 @@
-from math import e
-import re
-from tkinter import E
-from xmlrpc.client import boolean
 from sanic import Sanic
 from sanic import json, text
 #from sanic.response import file
@@ -133,4 +129,4 @@ if __name__ == '__main__':
         "cert":".\gaxer_ddns_net.pem-chain", 
         "key":".\key.pem"
     }
-    app.run(host='127.0.0.1', port='9999', debug=False, access_log=True, ssl=ssl)
+    app.run(host='0.0.0.0', port='2500', debug=False, access_log=True, ssl=ssl)
