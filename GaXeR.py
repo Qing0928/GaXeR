@@ -4,6 +4,7 @@ from sanic import json, text
 from pymongo import MongoClient
 import time
 from datetime import datetime
+from pprint import pprint
 
 client = MongoClient('mongodb://root:mongo0928@localhost:27017')
 db = client.gaxer
@@ -61,7 +62,7 @@ async def update(request):
 @app.get('/data')
 async def single(request):
     try:
-        #https://gaxer.ddns.net/data\?tok=123456abcd&record=1
+        #https://gaxer.ddns.net/data\?tok=123456abcd&record=3
         tok = request.args.get("tok")
         record = int(request.args.get("record"))
         if (tok == None) or (record == None):
@@ -84,7 +85,6 @@ async def single(request):
                 },
                 {"$limit":record}
             ]))
-            #print(result)
             return json(result, status=200)
     except Exception as e:
         print(e)
@@ -124,9 +124,42 @@ async def swupdate(request):
     except Exception as e:
         print(e)
 
+@app.get("/battery_gas")
+async def battery_gas(request):
+    #https://gaxer.ddns.net/battery_gas\?tok=123456abcd
+    try:
+        tok = request.args.get("tok")
+        if tok == None:
+            return text('Argument Error', status=200)
+        battery_gas_info = {'battery':0, 'gas':0}
+        result = list(collection.find({"profile.token":f"{tok}"}, {"gas1.battery":1, "_id":0}))
+        battery_gas_info["battery"] = result[0]['gas1']['battery']
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        struct_time = time.strptime(now, '%Y-%m-%d %H:%M:%S')
+        tstamp = int(time.mktime(struct_time))
+        result = list(collection.aggregate([
+            {"$match":{
+                "profile.token":f"{tok}"}
+                }, 
+            {"$unwind":"$gas1.data"},
+            {"$match":{
+                "gas1.data.time":{"$lt":tstamp}}
+                }, 
+            {"$sort":{"gas1.data.time":-1}},
+            {"$project":{
+                "gas1.data.gas":1, "_id":0}
+                }, 
+            {"$limit":1}
+            ])
+            )
+        battery_gas_info["gas"] = result[0]['gas1']['data']['gas']
+        return json(battery_gas_info)
+    except Exception as e:
+        print(e)
+
 if __name__ == '__main__':
     ssl = {
         "cert":".\gaxer_ddns_net.pem-chain", 
         "key":".\key.pem"
     }
-    app.run(host='0.0.0.0', port='2500', debug=False, access_log=True, ssl=ssl)
+    app.run(host='0.0.0.0', port='443', debug=False, access_log=True, ssl=ssl)
