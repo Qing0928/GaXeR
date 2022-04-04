@@ -159,8 +159,10 @@ async def resident(request):
         print(e)
 
 if __name__ == '__main__':
+    
     ssl = {
-        "cert":".\gaxer_ddns_net.pem-chain", 
-        "key":".\key.pem"
+        "cert":"gaxer_ddns_net.pem-chain", 
+        "key":"key.pem"
     }
-    app.run(host='0.0.0.0', port='443', debug=False, access_log=True, ssl=ssl)
+    
+   #app.run(host='0.0.0.0', port='443', debug=False, access_log=True)#ssl = ssl
