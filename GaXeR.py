@@ -124,14 +124,14 @@ async def swupdate(request):
     except Exception as e:
         print(e)
 
-@app.get("/battery_gas")
-async def battery_gas(request):
-    #https://gaxer.ddns.net/battery_gas\?tok=123456abcd
+@app.get("/resident")
+async def resident(request):
+    #https://gaxer.ddns.net/resident\?tok=123456abcd
     try:
         tok = request.args.get("tok")
         if tok == None:
             return text('Argument Error', status=200)
-        battery_gas_info = {'battery':0, 'gas':0}
+        battery_gas_info = {'battery':0, 'gas':0, 'temp':0}
         result = list(collection.find({"profile.token":f"{tok}"}, {"gas1.battery":1, "_id":0}))
         battery_gas_info["battery"] = result[0]['gas1']['battery']
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -147,12 +147,13 @@ async def battery_gas(request):
                 }, 
             {"$sort":{"gas1.data.time":-1}},
             {"$project":{
-                "gas1.data.gas":1, "_id":0}
+                "gas1.data.gas":1, "gas1.data.temp":1, "_id":0}
                 }, 
             {"$limit":1}
             ])
             )
         battery_gas_info["gas"] = result[0]['gas1']['data']['gas']
+        battery_gas_info["temp"] = result[0]['gas1']['data']['temp']
         return json(battery_gas_info)
     except Exception as e:
         print(e)
