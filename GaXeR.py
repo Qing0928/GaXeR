@@ -1,6 +1,3 @@
-from os import stat
-import re
-from urllib import request
 from sanic import Sanic
 from sanic import json, text
 #from sanic.response import file
@@ -12,6 +9,13 @@ from pprint import pprint
 client = MongoClient('mongodb://root:mongo0928@localhost:27017')
 db = client.gaxer
 collection = db.user
+
+def tokencheck(token):
+    if token:
+        return True
+    else:
+        return False
+
 
 app = Sanic('GaXeR')
 @app.get('/test')
@@ -26,12 +30,12 @@ async def test(request):
 @app.get('/upload')
 async def update(request):
     try:
-        #https://gaxer.ddns.net/upload\?acc=test01&sw=True&battery=88&fire=170000&temp=31&gas=29.52&remaining=1950.3&safe=0000
-        #https://127.0.0.1/upload\?acc=test01&sw=True&battery=88&fire=170000&temp=31&gas=29.52&remaining=1950.3&safe=0010
+        #https://gaxer.ddns.net/upload\?tok=123456abcd&sw=True&battery=88&fire=170000&temp=31&gas=29.52&remaining=1950.3&safe=0000
+        #https://127.0.0.1/upload\?tok=123456abcd&sw=True&battery=88&fire=170000&temp=31&gas=29.52&remaining=1950.3&safe=0010
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         struct_time = time.strptime(now, '%Y-%m-%d %H:%M:%S')
         tstamp = int(time.mktime(struct_time))
-        account = request.args.get("acc")
+        tok = request.args.get("tok")
         battery = request.args.get("battery")
         fire = request.args.get("fire")
         temp = request.args.get("temp")
@@ -39,11 +43,13 @@ async def update(request):
         remaining = request.args.get("remaining")
         safe = request.args.get("safe")
         print(request.query_args)
-        if (account == None) or (battery == None) or (fire == None) or (temp == None) or (gas == None) or (remaining == None):
+        if (tok == None) or (battery == None) or (fire == None) or (temp == None) or (gas == None) or (remaining == None):
             return text('Argument Error', status=200)
+        if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
+            return text('toekn invalid', status=200)
         else:
             collection.update_many(
-                {"account":f"{account}"},
+                {"profile.token":f"{tok}"},
                 {
                     "$push":{
                         "gas1.data":{
@@ -72,6 +78,8 @@ async def single(request):
         record = int(request.args.get("record"))
         if (tok == None) or (record == None):
             return text('Argument Error', status=200)
+        if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
+            return text('toekn invalid', status=200)
         else:
             now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             struct_time = time.strptime(now, '%Y-%m-%d %H:%M:%S')
@@ -101,6 +109,8 @@ async def swstatus(request):
         tok = request.args.get("tok")
         if tok == None:
             return text('Argument Error', status=200)
+        if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
+            return text('toekn invalid', status=200)
         else:
             result = list(collection.find({"profile.token":f"{tok}"}, {"gas1.uswitch":1, "_id":0}))
             sw = dict(result[0])
@@ -111,12 +121,15 @@ async def swstatus(request):
 @app.get('/swupdate')
 async def swupdate(request):
     #https://gaxer.ddns.net/swupdate\?tok=123456abcd&sw=True
+    #https://127.0.0.1/swupdate\?tok=123456abc&sw=True
     try:
         tok = request.args.get("tok")
         sw = request.args.get("sw")
         swCheck = ['True', 'False']
         if tok == None:
             return text('Argument Error', status=200)
+        if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
+            return text('toekn invalid', status=200)
         elif sw not in swCheck:
             return text('Argument Error', status=200)
         else:
@@ -139,6 +152,8 @@ async def resident(request):
         tok = request.args.get("tok")
         if tok == None:
             return text('Argument Error', status=200)
+        if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
+            return text('toekn invalid', status=200)
         else:
             battery_gas_info = {'battery':0, 'gas':0, 'temp':0}
             result = list(collection.find({"profile.token":f"{tok}"}, {"gas1.battery":1, "_id":0}))
@@ -174,6 +189,8 @@ async def safestatus(request):
         tok = request.args.get("tok")
         if tok == None:
             return text('Argument Error', status=200)
+        if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
+            return text('toekn invalid', status=200)
         else:
             result = list(collection.find({"profile.token":f"{tok}"}, {"gas1.safe":1, "_id":0}))
             safe = result[0]
@@ -181,11 +198,10 @@ async def safestatus(request):
     except Exception as e:
         return text(str(e), status=200)
 
-''''''
-if __name__ == '__main__':
+'''if __name__ == '__main__':
     
     ssl = {
         "cert":"gaxer_ddns_net.pem-chain", 
         "key":"key.pem"
     }
-    #app.run(host='0.0.0.0', port='443', debug=False, access_log=True, ssl = ssl)
+    app.run(host='0.0.0.0', port='443', debug=False, access_log=True, ssl = ssl)'''
