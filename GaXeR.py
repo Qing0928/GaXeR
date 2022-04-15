@@ -2,13 +2,22 @@ from sanic import Sanic
 from sanic import json, text
 #from sanic.response import file
 from pymongo import MongoClient
-import time
 from datetime import datetime
+import hashlib
+import time
 from pprint import pprint
+import logging
 
 client = MongoClient('mongodb://root:mongo0928@localhost:27017')
 db = client.gaxer
 collection = db.user
+
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s [%(levelname)s] %(message)s', 
+    datefmt='%Y-%m-%d %H:%M', 
+    handlers=[logging.FileHandler('ServerLog.log', 'a', 'utf8')]
+)
 
 def tokencheck(token):
     if token:
@@ -16,17 +25,49 @@ def tokencheck(token):
     else:
         return False
 
-
 app = Sanic('GaXeR')
 @app.get('/test')
 async def test(request):
     try:
         #https://gaxer.ddns.net/test
-        print('from {}'.format(request.ip))
+        #https://127.0.0.1/test
+        logging.info(f'from {request.ip}/test\nHello World')
         return text('Hello World', status=200)
     except Exception as e:
+        logging.warning(str(e))
         return text(str(e), status=200)
-        
+
+@app.post('/signup')
+async def signup(request):
+    try:
+        #https://gaxer.ddns.net/signup
+        #https://127.0.0.1/signup
+        try:
+            acc = request.json["acc"]
+            ps = request.json["ps"]
+        except Exception:
+            return text('Argument Error', status=200)
+        if (len(ps) != 64) or (len(acc) <= 0):
+            return text('Argument Error', status=200)
+        else:
+            s = hashlib.sha256()
+            s.update(acc.encode('utf-8'))
+            tok = s.hexdigest()
+            collection.insert_one(
+                {
+                    "account":f"{acc}", 
+                    "profile":{
+                        "pass":f"{ps}", 
+                        "token":f"{tok}"
+                    }
+                }
+            )
+            logging.info(f'from {request.ip}/signup\naccount:{acc}\ntoken:{tok}')
+            return text(tok, status=200)
+    except Exception as e:
+        logging.warning(str(e))
+        return text(e)
+
 @app.get('/upload')
 async def update(request):
     try:
@@ -42,7 +83,7 @@ async def update(request):
         gas = request.args.get("gas")
         remaining = request.args.get("remaining")
         safe = request.args.get("safe")
-        print(request.query_args)
+        #print(request.query_args)
         if (tok == None) or (battery == None) or (fire == None) or (temp == None) or (gas == None) or (remaining == None):
             return text('Argument Error', status=200)
         if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
@@ -66,14 +107,17 @@ async def update(request):
                     }
                 }, upsert=True
             )
+            logging.info(f'from {request.ip}/upload\n{tok}\n{battery}\n{fire}\n{temp}\n{gas}\n{remaining}\n{safe}')
             return text('ok', status=200)
     except Exception as e:
+        logging.warning(str(e))
         return text(str(e), status=200)
 
 @app.get('/data')
 async def single(request):
     try:
         #https://gaxer.ddns.net/data\?tok=123456abcd&record=3
+        #https://127.0.0.1/data\?tok=123456abcd&record=3
         tok = request.args.get("tok")
         record = int(request.args.get("record"))
         if (tok == None) or (record == None):
@@ -98,8 +142,10 @@ async def single(request):
                 },
                 {"$limit":record}
             ]))
+            logging.info(f'from {request.ip}/data\n{tok}\n{record}')
             return json(result, status=200)
     except Exception as e:
+        logging.warning(str(e))
         return text(str(e), status=200)
 
 @app.get('/swstatus')
@@ -114,8 +160,11 @@ async def swstatus(request):
         else:
             result = list(collection.find({"profile.token":f"{tok}"}, {"gas1.uswitch":1, "_id":0}))
             sw = dict(result[0])
-            return text(sw['gas1']['uswitch'], status=200)
+            sw_stat = sw['gas1']['uswitch']
+            logging.info(f'from {request.ip}/swstatus\n{tok}\n{sw_stat}')
+            return text(sw_stat, status=200)
     except Exception as e:
+        logging.warning(str(e))
         return text(str(e), status=200)
 
 @app.get('/swupdate')
@@ -141,8 +190,10 @@ async def swupdate(request):
                     }
                 }, upsert=True
             )
+            logging.info(f'from {request.ip}/swupdate\n{tok}\n{sw}')
             return text('ok', status=200)
     except Exception as e:
+        logging.warning(str(e))
         return text(str(e), status=200)
 
 @app.get("/resident")
@@ -178,8 +229,10 @@ async def resident(request):
                 )
             battery_gas_info["gas"] = result[0]['gas1']['data']['gas']
             battery_gas_info["temp"] = result[0]['gas1']['data']['temp']
+            logging.info(f'from{request.ip}/resdient\n{tok}\n{battery_gas_info}')
             return json(battery_gas_info, status=200)
     except Exception as e:
+        logging.warning(str(e))
         print(e)
 
 @app.get("/safestatus")
@@ -194,8 +247,11 @@ async def safestatus(request):
         else:
             result = list(collection.find({"profile.token":f"{tok}"}, {"gas1.safe":1, "_id":0}))
             safe = result[0]
-            return text(safe['gas1']['safe'], status=200)
+            safestat = safe['gas1']['safe']
+            logging.info(f'from{request.ip}/safestatus\n{tok}\n{safestat}')
+            return text(safestat, status=200)
     except Exception as e:
+        logging.warning(str(e))
         return text(str(e), status=200)
 
 '''if __name__ == '__main__':
@@ -204,4 +260,4 @@ async def safestatus(request):
         "cert":"gaxer_ddns_net.pem-chain", 
         "key":"key.pem"
     }
-    app.run(host='0.0.0.0', port='443', debug=False, access_log=True, ssl = ssl)'''
+    app.run(host='0.0.0.0', port='443', debug=True, access_log=True, ssl = ssl)'''
