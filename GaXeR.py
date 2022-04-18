@@ -5,7 +5,6 @@ from pymongo import MongoClient
 from datetime import datetime
 import hashlib
 import time
-from pprint import pprint
 import logging
 
 client = MongoClient('mongodb://root:mongo0928@localhost:27017')
@@ -16,7 +15,7 @@ logging.basicConfig(
     level=logging.INFO, 
     format='%(asctime)s [%(levelname)s] %(message)s', 
     datefmt='%Y-%m-%d %H:%M', 
-    handlers=[logging.FileHandler('ServerLog.log', 'a', 'utf8')]
+    handlers=[logging.FileHandler('ServerLog.log', 'w', 'utf8')]
 )
 
 def tokencheck(token):
@@ -50,22 +49,49 @@ async def signup(request):
         if (len(ps) != 64) or (len(acc) <= 0):
             return text('Argument Error', status=200)
         else:
-            s = hashlib.sha256()
-            s.update(acc.encode('utf-8'))
-            tok = s.hexdigest()
-            collection.insert_one(
-                {
-                    "account":f"{acc}", 
-                    "profile":{
-                        "pass":f"{ps}", 
-                        "token":f"{tok}"
+            result = list(collection.find({"account":f"{acc}"}))
+            if result:
+                logging.info(f'from {request.ip}/signup\nalready use')
+                return text('already use', status=200)
+            else:
+                s = hashlib.sha256()
+                s.update(acc.encode('utf-8'))
+                tok = s.hexdigest()
+                collection.insert_one(
+                    {
+                        "account":f"{acc}", 
+                        "profile":{
+                            "pass":f"{ps}", 
+                            "token":f"{tok}"
+                        }
                     }
-                }
-            )
-            logging.info(f'from {request.ip}/signup\naccount:{acc}\ntoken:{tok}')
-            return text(tok, status=200)
+                )
+                logging.info(f'from {request.ip}/signup\naccount:{acc}\ntoken:{tok}')
+                return text(tok, status=200)
+            
     except Exception as e:
         logging.warning(str(e))
+        return text(e)
+
+@app.post('/signin')
+async def signin(request):
+    try:
+        acc = request.json["acc"]
+        ps = request.json["ps"]
+        result =  list(collection.find({"account":f"{acc}"}, {"_id":0, "account":1, "profile":1}))
+        if result:
+            usinfo = result[0]
+            if usinfo['profile']['pass'] != ps:
+                logging.info(f'from {request.ip}/signin\npass error')
+                return text('pass error', status=200)
+            else:
+                tok = usinfo['profile']['token']
+                logging.info(f'from {request.ip}/signin\nacc:{acc}\ntoken:{tok}')
+                return text(tok, status=200)
+        else:
+            logging.info(f'from {request.ip}/signin\ninvalid user')
+            return text('invalid user')
+    except Exception as e:
         return text(e)
 
 @app.get('/upload')
