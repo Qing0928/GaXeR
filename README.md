@@ -195,6 +195,7 @@ https://gaxer.ddns.net/safestatus\?tok=123456abcd
 
 ### 帳號申請
 https://gaxer.ddns.net/signup
+
 **使用的是post而非get，點開網址沒用**
 
 傳過來的json
@@ -215,6 +216,7 @@ ps欄位為app端對使用者密碼進行sha256雜湊過後的結果
 
 ### 登入
 https://gaxer.ddns.net/signin
+
 **使用的是post而非get，點開網址沒用**
 
 傳過來的json
