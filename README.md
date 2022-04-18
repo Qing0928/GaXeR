@@ -116,6 +116,7 @@ https://gaxer.ddns.net/swupdate\?tok=123456abcd&sw=True
 
 **目前tok全部都先用123456abcd**
 **現在會針對sw這個參數值進行偵測，出現True/False以外的值，會回傳Argument Error**
+
 參數皆正確
 ```htmlmixed=
 'ok'
@@ -167,6 +168,7 @@ https://gaxer.ddns.net/safestatus\?tok=123456abcd
 | tok      | 123456abcd |
 
 **目前tok全部都先用123456abcd**
+
 參數皆正確
 ```htmlmixed=
 '0010'
