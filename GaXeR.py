@@ -42,8 +42,8 @@ async def signup(request):
         #https://gaxer.ddns.net/signup
         #https://127.0.0.1/signup
         try:
-            acc = request.json["acc"]
-            ps = request.json["ps"]
+            acc = request.form.get("acc")
+            ps = request.form.get("ps")
         except Exception:
             return text('Argument Error', status=200)
         if (len(ps) != 64) or (len(acc) <= 0):
@@ -76,8 +76,8 @@ async def signup(request):
 @app.post('/signin')
 async def signin(request):
     try:
-        acc = request.json["acc"]
-        ps = request.json["ps"]
+        acc = request.form.get("acc")
+        ps = request.form.get("ps")
         result =  list(collection.find({"account":f"{acc}"}, {"_id":0, "account":1, "profile":1}))
         if result:
             usinfo = result[0]
@@ -280,10 +280,29 @@ async def safestatus(request):
         logging.warning(str(e))
         return text(str(e), status=200)
 
-'''if __name__ == '__main__':
-    
+@app.get("/devlist")
+async def devlist(request):
+    #https://127.0.0.1/devlist\?tok=123456abcd
+    try:
+        tok = request.args.get("tok")
+        if tok == None:
+            return text('Argument Error', status=200)
+        if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
+            return text('token invalid', status=200)
+        else:
+            result = list(collection.find({"profile.token":f"{tok}"}, {"_id":0, "account":0, "profile":0}))
+            dev = {"devList":""}    
+            dev["devList"] = list(result[0].keys())
+            #print(dev)
+        return json(dev, status=200)
+    except Exception as e:
+        logging.warning(str(e))
+        return text(str(e), status=200)
+'''
+if __name__ == '__main__':
     ssl = {
-        "cert":"gaxer_ddns_net.pem-chain", 
+        "cert":"gaxer_ddns_net.pem-chain",
         "key":"key.pem"
     }
-    app.run(host='0.0.0.0', port='443', debug=True, access_log=True, ssl = ssl)'''
+    app.run(host='0.0.0.0', port='443', debug=True, access_log=True, ssl = ssl, worker=2)
+'''
