@@ -319,8 +319,10 @@ async def alert(request):
             return text('token invalid', status=200)
         else:
             result = list(collection.find({"profile.token":f"{tok}", "safe":{"$ne":"0000"}}, {"_id":0, "account":0, "profile":0}))
-            problem = {"alert":""}
-            problem["alert"] = list(result[0].keys())
+            problem = {"alert":[]}
+            alertdev = result[0].keys()
+            for i in alertdev:
+                problem["alert"].append({f"{i}":result[0][i]['safe']})
         return json(problem, status=200)
     except Exception as e:
         return text(str(e), status=200)
