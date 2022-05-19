@@ -1,6 +1,6 @@
 from sanic import Sanic
 from sanic import json, text
-#from sanic.response import file
+from sanic.response import file
 from pymongo import MongoClient
 from datetime import datetime
 import hashlib
@@ -323,14 +323,34 @@ async def alert(request):
             alertdev = result[0].keys()
             for i in alertdev:
                 problem["alert"].append({f"{i}":result[0][i]['safe']})
-        return json(problem, status=200)
+        return await json(problem, status=200)
     except Exception as e:
         return text(str(e), status=200)
 
-''''''
-if __name__ == '__main__':
+@app.get("/groupcheck")
+async def groupcheck(request):
+    try:
+        #https://127.0.0.1/groupcheck\?tok=123456abcd&dev=gas1
+        tok = request.args.get("tok")
+        dev = request.args.get("dev")
+        if tok == None:
+            return text('Argument Error', status=200)
+        if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
+            return text('token invalid', status=200)
+        else:
+            result = list(collection.find({"profile.token":f"{tok}"}, {f"{dev}.group":1, "_id":0}))
+            if result[0][f'{dev}']['group'] == "n":
+                return text("nan", status=200)
+            else:
+                group_belong = result[0][f'{dev}']['group']
+                return text(str(group_belong), status=200)
+    except Exception as e:
+        return text(str(e), status=200)
+        
+
+'''if __name__ == '__main__':
     ssl = {
         "cert":"gaxer_ddns_net.pem-chain", 
         "key":"key.pem"
     }
-    app.run(host='0.0.0.0', port='443', debug=True, access_log=True, ssl = ssl)
+    app.run(host='0.0.0.0', port='443', debug=True, access_log=True, ssl = ssl)'''
