@@ -301,7 +301,13 @@ async def devlist(request):
         else:
             result = list(collection.find({"profile.token":f"{tok}"}, {"_id":0, "account":0, "profile":0}))
             dev = {"devList":""}    
-            dev["devList"] = list(result[0].keys())
+            tmp = []
+            for i in list(result[0].keys()):
+                if "group" not in i:
+                    tmp.append(i)
+                else:
+                    continue
+            dev["devList"] = tmp
             #print(dev)
             return json(dev, status=200)
     except Exception as e:
@@ -323,7 +329,7 @@ async def alert(request):
             alertdev = result[0].keys()
             for i in alertdev:
                 problem["alert"].append({f"{i}":result[0][i]['safe']})
-        return await json(problem, status=200)
+        return json(problem, status=200)
     except Exception as e:
         return text(str(e), status=200)
 
@@ -347,6 +353,30 @@ async def groupcheck(request):
     except Exception as e:
         return text(str(e), status=200)
         
+
+@app.post("/groupregister")
+async def groupregister(request):
+    try:
+        #https://127.0.0.1/groupregister
+        tok = request.form.get("token")
+        g_name = 'group' + str(request.form.get("name"))
+        dev = request.form.get("dev").strip("[]").rstrip(",").split(",")
+        for index, i in enumerate(dev):
+            tmp = eval(i)
+            dev_name = list(tmp.keys())[0]
+            dev_mac = tmp[dev_name]
+            collection.update_many(
+                {'profile.token':f'{tok}'}, 
+                {
+                    "$set":{
+                        f"{g_name}.{dev_name}":dev_mac
+                    }
+                }, upsert=True
+            )
+        return text("ok", status=200)
+    except Exception as e:
+        return text(str(e), status=200)
+
 
 '''if __name__ == '__main__':
     ssl = {
