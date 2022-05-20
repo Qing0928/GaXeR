@@ -1,3 +1,5 @@
+from contextlib import AsyncExitStack
+from pprint import pprint
 from sanic import Sanic
 from sanic import json, text
 from sanic.response import file
@@ -200,7 +202,7 @@ async def swstatus(request):
 @app.get('/swupdate')
 async def swupdate(request):
     #https://gaxer.ddns.net/swupdate\?tok=123456abcd&sw=True
-    #https://127.0.0.1/swupdate\?tok=123456abc&sw=True&dev=gas1
+    #https://127.0.0.1/swupdate\?tok=123456abcd&sw=True&dev=gas1
     try:
         tok = request.args.get("tok")
         sw = request.args.get("sw")
@@ -229,8 +231,8 @@ async def swupdate(request):
 
 @app.get("/resident")
 async def resident(request):
-    #https://gaxer.ddns.net/resident\?dev=gas1&tok=123456abcd&dev=gas1
-    #https://127.0.0.1/resident\?dev=gas1&tok=123456abcd&dev=gas1
+    #https://gaxer.ddns.net/resident\?dev=gas1&tok=123456abcd
+    #https://127.0.0.1/resident\?dev=gas1&tok=123456abcd
     try:
         tok = request.args.get("tok")
         dev = request.args.get("dev")
@@ -325,10 +327,15 @@ async def alert(request):
             return text('token invalid', status=200)
         else:
             result = list(collection.find({"profile.token":f"{tok}", "safe":{"$ne":"0000"}}, {"_id":0, "account":0, "profile":0}))
+            #pprint(result)
             problem = {"alert":[]}
             alertdev = result[0].keys()
+            #print(alertdev)
             for i in alertdev:
-                problem["alert"].append({f"{i}":result[0][i]['safe']})
+                if 'group' not in i:
+                    problem["alert"].append({f"{i}":result[0][i]['safe']})
+                else:
+                    continue
         return json(problem, status=200)
     except Exception as e:
         return text(str(e), status=200)
@@ -369,7 +376,8 @@ async def groupregister(request):
                 {'profile.token':f'{tok}'}, 
                 {
                     "$set":{
-                        f"{g_name}.{dev_name}":dev_mac
+                        f"{g_name}.{dev_name}":dev_mac,
+                        f"{dev_name}.group":g_name
                     }
                 }, upsert=True
             )
@@ -377,6 +385,49 @@ async def groupregister(request):
     except Exception as e:
         return text(str(e), status=200)
 
+@app.get("/groupsimple")
+async def groupsimple(request):
+    try:
+        #https://127.0.0.1/groupsimple\?tok=123456abcd&group=group2F
+        tok = request.args.get("tok")
+        g_name = request.args.get("group")
+        if (g_name == None) or (tok == None):
+            return text('Argument Error', status=200)
+        else:
+            result = list(collection.find(
+                {"profile.token":f"{tok}"}, 
+                {"_id":0, f"{g_name}":1}
+                )
+            )
+            dev_num = len(result[0][g_name].keys())
+            return text(str(dev_num), status=200)
+    except Exception as e:
+        return text(str(e), status=200)
+
+@app.get("/groupdetail")
+async def groupdetail(request):
+    try:
+        #https://127.0.0.1/groupdetail\?tok=123456abcd&group=group2F
+        tok = request.args.get("tok")
+        g_name = request.args.get("group")
+        if (g_name == None) or (tok == None):
+            return text('Argument Error', status=200)
+        else:
+            result = list(collection.find(
+                {"profile.token":f"{tok}"},
+                {"_id":0, f"{g_name}":1}
+                )
+            )
+            dev = list(result[0][g_name].keys())
+            macaddr = ''
+            for index, value in enumerate(dev):
+                if index == len(dev)-1:
+                    macaddr += result[0][g_name][value]
+                else:
+                    macaddr += f'{result[0][g_name][value]},'
+            return text(macaddr, status=200)
+    except Exception as e:
+        return text(str(e), status=200)
 
 '''if __name__ == '__main__':
     ssl = {
