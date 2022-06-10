@@ -1,8 +1,5 @@
-from contextlib import AsyncExitStack
-from pprint import pprint
 from sanic import Sanic
 from sanic import json, text
-from sanic.response import file
 from pymongo import MongoClient
 from datetime import datetime
 import hashlib
@@ -104,6 +101,7 @@ async def update(request):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         struct_time = time.strptime(now, '%Y-%m-%d %H:%M:%S')
         tstamp = int(time.mktime(struct_time))
+
         tok = request.args.get("tok")
         battery = request.args.get("battery")
         fire = request.args.get("fire")
@@ -112,12 +110,21 @@ async def update(request):
         remaining = request.args.get("remaining")
         safe = request.args.get("safe")
         dev = request.args.get("dev")
+
         #print(request.query_args)
         if (tok == None) or (battery == None) or (fire == None) or (temp == None) or (gas == None) or (remaining == None) or (dev == None):
             return text('Argument Error', status=200)
         if tokencheck(list(collection.find({"profile.token":f"{tok}"}, {"profile.token":1, "_id":0}))) == False:
             return text('toekn invalid', status=200)
         else:
+            try:
+                battery = float(battery)
+                fire = float(fire)
+                temp = float(temp)
+                gas = float(gas)
+                remaining = float(remaining)
+            except Exception as e:
+                return text(str(e))
             collection.update_many(
                 {"profile.token":f"{tok}"},
                 {
@@ -426,6 +433,39 @@ async def groupdetail(request):
                 else:
                     macaddr += f'{result[0][g_name][value]},'
             return text(macaddr, status=200)
+    except Exception as e:
+        return text(str(e), status=200)
+
+@app.get("/ungroup")
+async def ungroup(request):
+    try:
+        #https://127.0.0.1/ungroup\?tok=123456abcd&group=group2F
+        tok = request.args.get("tok")
+        g_name = request.args.get("group")
+        if (g_name == None) or (tok == None):
+            return text('Argument Error', status=200)
+        else:
+            #取出群組中的所有裝置
+            result = list(collection.find(
+                {"profile.token":f"{tok}"}, 
+                {f"{g_name}":1, "_id":0}
+            ))
+            #逐個移除群組
+            group_list = result[0][g_name].keys()
+            for dev in group_list:
+                collection.update_one(
+                    {"profile.token":f"{tok}"}, 
+                    {"$set":{
+                        f"{dev}.group":"n"
+                        }
+                    }
+                )
+            #群組資料表刪除
+            collection.update_one(
+                {"profile.token":f"{tok}"},
+                {"$unset":{f"{g_name}":1}} 
+            )
+            return text("ok", status=200)
     except Exception as e:
         return text(str(e), status=200)
 
