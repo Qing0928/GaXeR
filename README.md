@@ -1,5 +1,11 @@
 # GaXeR
 ## API
+### 系統架構圖
+
+![](https://i.imgur.com/xIcnnMB.png)
+
+---
+
 ### 網址
 https://gaxer.ddns.net
 
