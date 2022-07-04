@@ -242,3 +242,136 @@ ps欄位為app端對使用者密碼進行sha256雜湊過後的結果
 ```htmlmixed=
 "pass error"
 ```
+
+---
+
+### 取得用戶裝置清單
+https://gaxer.ddns.net/devlist\?tok=678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296
+
+回傳結果
+```jsonld=
+{
+  "devList": [
+    "gas1"
+  ]
+}
+```
+缺少參數
+```htmlmixed=
+'Argument Error'
+```
+無效的token
+```htmlmixed=
+'token invalid'
+```
+
+---
+
+### 取得有問題的裝置
+https://gaxer.ddns.net/alert\?tok=678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296
+
+回傳結果
+
+```jsonld=
+{
+  "alert": [
+    {
+      "gas1": "0010"
+    },
+    {
+      "gas2": "0010"
+    }
+  ]
+}
+```
+缺少參數
+```htmlmixed=
+'Argument Error'
+```
+無效的token
+```htmlmixed=
+'token invalid'
+```
+
+---
+
+### 取得裝置所屬群組
+https://gaxer.ddns.net/groupcheck\?tok=678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296&dev=gas1
+
+| Argument | Example                                                          |
+| -------- | ---------------------------------------------------------------- |
+| tok      | 678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296 |
+| dev      | gas1                                                             |
+
+沒有群組
+```htmlembedded=
+"nan"
+```
+有群組
+```htmlembedded=
+"group2F"
+```
+
+---
+
+### 註冊群組
+https://gaxer.ddns.net/groupregister
+
+**使用的是post而非get，點開網址沒用**
+
+傳過來的form
+
+```jsonld=
+{
+    "token":"678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296", 
+    "name":"2F",
+    "dev":"{"gas1":"MAC"},{"gas1":"MAC"},"
+}
+```
+
+---
+
+### 查詢群組資料
+#### 簡易
+
+https://gaxer.ddns.net/groupsimple\?tok=678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296&group=groupfinal
+
+| Argument | Example                                                          |
+| -------- | ---------------------------------------------------------------- |
+| tok      | 678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296 |
+| group      | groupfinal                                                             |
+
+回傳資料
+```htmlembedded=
+2
+```
+
+#### 詳細
+https://gaxer.ddns.net/groupdetail\?tok=678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296&group=groupfinal
+
+| Argument | Example                                                          |
+| -------- | ---------------------------------------------------------------- |
+| tok      | 678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296 |
+| group    | groupfinal                                                       |
+
+回傳資料
+```htmlembedded=
+24:0A:C4:59:A5:44,34:94:54:24:85:0C
+```
+
+---
+
+### 刪除群組
+**沒事不要亂點，還在測試**
+
+https://gaxer.ddns.net/ungroup\?tok=678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296&group=groupfinal
+
+| Argument | Example                                                          |
+| -------- | ---------------------------------------------------------------- |
+| tok      | 678E82D907D3E6E71F81D5CF3DDACC3671DC618C38A1B7A9F9393A83D025B296 |
+| group    | groupfinal                                                       |
+
+回傳資料
+```htmlembedded=
+ok
+```
